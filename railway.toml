@@ -3,7 +3,7 @@ builder = "dockerfile"
 
 [[services]]
 name = "api"
-dockerfile = "Dockerfile.api"
+dockerfile = "Dockerfile"
 
 [services.deploy]
 healthcheckPath = "/health"

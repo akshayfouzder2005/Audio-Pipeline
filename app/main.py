@@ -31,3 +31,12 @@ async def health():
 @app.get("/")
 async def serve_ui():
     return FileResponse("frontend/index.html")
+
+import threading
+from worker.main import main as worker_main
+
+def start_worker():
+    worker_main()
+
+worker_thread = threading.Thread(target=start_worker, daemon=True)
+worker_thread.start()

@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Fluid Studio | Audio Transcription</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "surface": "#111317",
+          "primary": "#eacff8",
+          "secondary": "#ffb3b0",
+          "tertiary": "#90ecb7",
+          "on-background": "#e2e2e8",
+          "on-surface": "#e2e2e8",
+          "on-surface-variant": "#cdc4cd",
+          "surface-container-lowest": "#0c0e12",
+          "surface-container-low": "#1a1c20",
+          "surface-container": "#1e2024",
+          "surface-container-high": "#282a2e",
+          "surface-container-highest": "#333539",
+          "surface-variant": "#333539",
+          "outline": "#968e97",
+          "outline-variant": "#4a454c",
+          "tertiary-container": "#74cf9d",
+          "error": "#ffb4ab",
+          "on-secondary": "#5f1317",
+          "on-tertiary": "#003921",
+          "on-primary": "#3b2948",
+          "primary-fixed": "#f3daff",
+          "secondary-fixed": "#ffdad8",
+          "secondary-container": "#7e2a2b",
+        },
+        fontFamily: {
+          "headline": ["Outfit", "sans-serif"],
+          "body": ["Plus Jakarta Sans", "sans-serif"],
+          "mono": ["JetBrains Mono", "monospace"],
+        },
+        borderRadius: {
+          "DEFAULT": "1rem",
+          "lg": "2rem",
+          "xl": "3rem",
+          "full": "9999px",
+        }
+      }
+    }
+  }
+</script>
+<style>
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+  .fill-icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+
+  body { background-color: #0F1115; color: #e2e2e8; font-family: 'Plus Jakarta Sans', sans-serif; }
+
+  /* Ambient glow backgrounds */
+  .ambient-purple { background: radial-gradient(ellipse at 20% 20%, rgba(234,207,248,0.07) 0%, transparent 60%); }
+  .ambient-pink   { background: radial-gradient(ellipse at 80% 80%, rgba(255,179,176,0.06) 0%, transparent 60%); }
+  .ambient-green  { background: radial-gradient(ellipse at 50% 50%, rgba(144,236,183,0.04) 0%, transparent 60%); }
+
+  /* Page transitions */
+  .page { display: none; opacity: 0; transition: opacity 0.4s ease; }
+  .page.active { display: flex; opacity: 1; }
+
+  /* Waveform animation */
+  @keyframes waveShift {
+    0%   { d: path("M0 100C100 60 200 140 300 100C400 60 500 140 600 100C700 60 800 140 900 100"); }
+    25%  { d: path("M0 110C100 50 200 150 300 90C400 130 500 60 600 120C700 50 800 160 900 90"); }
+    50%  { d: path("M0 90C100 130 200 60 300 120C400 50 500 160 600 80C700 140 800 50 900 110"); }
+    75%  { d: path("M0 115C100 70 200 130 300 85C400 145 500 55 600 115C700 65 800 140 900 80"); }
+    100% { d: path("M0 100C100 60 200 140 300 100C400 60 500 140 600 100C700 60 800 140 900 100"); }
+  }
+  @keyframes waveShift2 {
+    0%   { d: path("M-50 110C50 70 150 150 250 110C350 70 450 150 550 110C650 70 750 150 850 110"); }
+    33%  { d: path("M-50 90C50 140 150 60 250 130C350 50 450 130 550 80C650 140 750 60 850 130"); }
+    66%  { d: path("M-50 120C50 60 150 140 250 80C350 150 450 70 550 140C650 80 750 150 850 70"); }
+    100% { d: path("M-50 110C50 70 150 150 250 110C350 70 450 150 550 110C650 70 750 150 850 110"); }
+  }
+  @keyframes waveShift3 {
+    0%   { d: path("M-100 90C0 50 100 130 200 90C300 50 400 130 500 90C600 50 700 130 800 90"); }
+    50%  { d: path("M-100 110C0 140 100 60 200 120C300 40 400 150 500 70C600 130 700 50 800 120"); }
+    100% { d: path("M-100 90C0 50 100 130 200 90C300 50 400 130 500 90C600 50 700 130 800 90"); }
+  }
+  .wave-mint   { animation: waveShift  3.8s ease-in-out infinite; }
+  .wave-lilac  { animation: waveShift2 4.5s ease-in-out infinite; }
+  .wave-coral  { animation: waveShift3 3.2s ease-in-out infinite; }
+
+  /* Drag over */
+  .dropzone-active { border-color: rgba(234,207,248,0.6) !important; background: rgba(234,207,248,0.05) !important; }
+
+  /* Transcript block hover */
+  .transcript-block { border-left: 3px solid transparent; transition: all 0.2s ease; }
+  .transcript-block:hover { border-left-color: #eacff8; background: rgba(234,207,248,0.03); }
+  .transcript-block.speaker-b:hover { border-left-color: #ffb3b0; background: rgba(255,179,176,0.03); }
+  .transcript-block.speaker-c:hover { border-left-color: #90ecb7; background: rgba(144,236,183,0.03); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #4a454c; border-radius: 4px; }
+
+  /* Progress bar shimmer */
+  @keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+  .progress-shimmer {
+    background: linear-gradient(90deg, #ffb3b0 0%, #eacff8 50%, #ffb3b0 100%);
+    background-size: 200% auto;
+    animation: shimmer 2s linear infinite;
+  }
+
+  /* Pulse dot */
+  @keyframes pulseDot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+  .pulse-dot { animation: pulseDot 1.5s ease-in-out infinite; }
+
+  /* Spin slow */
+  @keyframes spinSlow { to { transform: rotate(360deg); } }
+  .spin-slow { animation: spinSlow 10s linear infinite; }
+
+  /* Fade in up */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in-up { animation: fadeInUp 0.5s ease forwards; }
+
+  /* Toast */
+  #toast {
+    position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #1e2024; border: 1px solid #4a454c; border-radius: 9999px;
+    padding: 10px 20px; font-size: 13px; color: #e2e2e8;
+    opacity: 0; transition: all 0.3s ease; z-index: 9999; white-space: nowrap;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.error { border-color: #ffb4ab; color: #ffb4ab; }
+  #toast.success { border-color: #90ecb7; color: #90ecb7; }
+
+  /* Audio player progress interactive */
+  #player-progress { cursor: pointer; }
+
+  /* Spotify-style active segment */
+  .seg-active .segment-text {
+    color: #ffffff !important;
+    font-size: 18px !important;
+    font-weight: 600 !important;
+  }
+  /* Dim non-active segments when audio is playing */
+  .audio-playing .transcript-block:not(.seg-active) .segment-text {
+    color: #4b5563 !important;
+  }
+  .audio-playing .transcript-block:not(.seg-active) .spk-badge {
+    opacity: 0.35 !important;
+  }
+  .audio-playing .transcript-block:not(.seg-active) .font-mono {
+    opacity: 0.4 !important;
+  }
+
+  /* Tag pill */
+  .tag-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 9999px;
+    font-size: 11px; font-family: 'JetBrains Mono', monospace;
+    background: rgba(234,207,248,0.1); color: #eacff8;
+  }
+  .tag-pill.secondary { background: rgba(255,179,176,0.1); color: #ffb3b0; }
+  .tag-pill.tertiary  { background: rgba(144,236,183,0.1); color: #90ecb7; }
+
+  /* Speaker badge colors */
+  .spk-0 { background: rgba(234,207,248,0.15); color: #eacff8; }
+  .spk-1 { background: rgba(255,179,176,0.15); color: #ffb3b0; }
+  .spk-2 { background: rgba(144,236,183,0.15); color: #90ecb7; }
+  .spk-3 { background: rgba(255,220,100,0.15); color: #ffd464; }
+
+  .border-spk-0 { border-left-color: #eacff8 !important; }
+  .border-spk-1 { border-left-color: #ffb3b0 !important; }
+  .border-spk-2 { border-left-color: #90ecb7 !important; }
+  .border-spk-3 { border-left-color: #ffd464 !important; }
+</style>
+</head>
+<body class="antialiased min-h-screen overflow-x-hidden">
+
+<!-- ═══════════════════════════════════════════════════
+     GLOBAL AMBIENT BACKGROUND
+════════════════════════════════════════════════════ -->
+<div class="fixed inset-0 pointer-events-none z-0">
+  <div class="ambient-purple absolute inset-0"></div>
+  <div class="ambient-pink absolute inset-0"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     NAVBAR (shared)
+════════════════════════════════════════════════════ -->
+<nav id="navbar" class="fixed top-0 w-full z-50 bg-[#111317]/80 backdrop-blur-xl flex justify-between items-center px-8 py-4 border-b border-white/5">
+  <div class="text-2xl font-headline font-bold text-primary cursor-pointer" onclick="goTo('upload')">The Fluid Studio</div>
+  <div id="nav-links" class="hidden md:flex items-center gap-8">
+    <a class="text-slate-400 font-semibold tracking-tight hover:text-primary transition-colors cursor-pointer" onclick="goTo('upload')">Upload</a>
+    <a id="nav-editor"   class="text-slate-400 font-semibold tracking-tight hover:text-primary transition-colors cursor-pointer opacity-40" onclick="goTo('editor')">Editor</a>
+    <a id="nav-insights" class="text-slate-400 font-semibold tracking-tight hover:text-primary transition-colors cursor-pointer opacity-40" onclick="goTo('insights')">Insights</a>
+  </div>
+  <div class="flex items-center gap-4">
+    <div id="api-status" class="flex items-center gap-2 text-xs font-mono text-slate-600">
+      <span id="api-dot" class="w-1.5 h-1.5 rounded-full bg-slate-600 inline-block"></span>
+      <span id="api-label">Connecting...</span>
+    </div>
+    <span class="material-symbols-outlined text-slate-400 hover:text-primary cursor-pointer transition-colors">settings</span>
+    <span class="material-symbols-outlined text-slate-400 hover:text-primary cursor-pointer transition-colors">account_circle</span>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════
+     PAGE 1: UPLOAD
+════════════════════════════════════════════════════ -->
+<div id="page-upload" class="page active flex-col min-h-screen pt-20 relative z-10">
+  <main class="flex-1 flex flex-col items-center justify-center p-6 py-16">
+    <div class="max-w-[800px] w-full flex flex-col items-center">
+
+      <!-- Header -->
+      <div class="mb-12 text-center fade-in-up">
+        <h1 class="font-headline text-[36px] md:text-[48px] font-bold text-on-background tracking-tight mb-3">Drop your audio here</h1>
+        <p class="text-slate-400 text-lg">Support for high-fidelity WAV, MP3, and FLAC formats · Max 500MB</p>
+      </div>
+
+      <!-- Drop Zone -->
+      <div id="dropzone"
+        class="w-full max-w-[620px] h-[380px] rounded-lg border-2 border-dashed border-white/10 bg-surface-container-low/40 backdrop-blur-sm flex flex-col items-center justify-center transition-all duration-300 cursor-pointer relative overflow-hidden group"
+        onclick="document.getElementById('file-input').click()"
+        ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+
+        <div class="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+
+        <div id="dropzone-idle" class="flex flex-col items-center z-10 text-center px-8">
+          <div class="mb-6 p-5 rounded-full bg-primary/10 flex items-center justify-center">
+            <span class="material-symbols-outlined text-primary text-5xl fill-icon">cloud_upload</span>
+          </div>
+          <p class="text-slate-300 font-medium text-lg mb-6">Drag and drop audio files or voice notes</p>
+          <button class="bg-[#181B21] text-white px-8 py-3.5 rounded-full font-semibold flex items-center gap-2 hover:bg-[#25282e] hover:scale-105 active:scale-95 transition-all shadow-xl border border-white/10">
+            <span class="material-symbols-outlined text-sm">upload_file</span>
+            Browse Files
+          </button>
+          <div class="flex gap-6 mt-8 text-xs font-mono text-slate-500">
+            <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[13px] text-tertiary">check_circle</span>Max 500MB</span>
+            <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[13px] text-tertiary">check_circle</span>WAV · MP3 · FLAC · M4A</span>
+            <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[13px] text-tertiary">check_circle</span>Speaker Diarization</span>
+          </div>
+        </div>
+
+        <div id="dropzone-file" class="hidden flex-col items-center z-10 text-center px-8">
+          <div class="mb-4 p-4 rounded-full bg-tertiary/10">
+            <span class="material-symbols-outlined text-tertiary text-4xl fill-icon">audio_file</span>
+          </div>
+          <p id="selected-filename" class="text-on-surface font-semibold text-lg mb-1 font-mono">file.mp3</p>
+          <p id="selected-filesize" class="text-slate-500 text-sm mb-6">0 MB</p>
+          <button id="btn-upload" onclick="uploadFile(event)" class="bg-primary text-on-primary px-8 py-3.5 rounded-full font-bold flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/20">
+            <span class="material-symbols-outlined text-sm fill-icon">rocket_launch</span>
+            Transcribe Now
+          </button>
+          <button onclick="clearFile(event)" class="mt-3 text-slate-500 text-sm hover:text-slate-300 transition-colors">Choose different file</button>
+        </div>
+      </div>
+
+      <input type="file" id="file-input" class="hidden" accept=".wav,.mp3,.flac,.m4a,.ogg" onchange="onFileSelected(event)"/>
+
+      <!-- Feature Cards -->
+      <div class="mt-14 grid grid-cols-1 md:grid-cols-3 gap-5 w-full fade-in-up" style="animation-delay:0.2s">
+        <div class="p-6 rounded-lg bg-surface-container-low border border-white/5 flex flex-col gap-3 hover:border-primary/20 transition-colors">
+          <span class="material-symbols-outlined text-primary fill-icon">auto_awesome</span>
+          <h3 class="font-semibold text-primary">Smart Diarization</h3>
+          <p class="text-sm text-slate-400">Automatic speaker identification and separation powered by pyannote 3.0.</p>
+        </div>
+        <div class="p-6 rounded-lg bg-surface-container-low border border-white/5 flex flex-col gap-3 hover:border-secondary/20 transition-colors">
+          <span class="material-symbols-outlined text-secondary">graphic_eq</span>
+          <h3 class="font-semibold text-secondary">Whisper Transcription</h3>
+          <p class="text-sm text-slate-400">OpenAI Whisper model for crystal-clear, multi-language transcription accuracy.</p>
+        </div>
+        <div class="p-6 rounded-lg bg-surface-container-low border border-white/5 flex flex-col gap-3 hover:border-tertiary/20 transition-colors">
+          <span class="material-symbols-outlined text-tertiary">stream</span>
+          <h3 class="font-semibold text-tertiary">Redis Stream Queue</h3>
+          <p class="text-sm text-slate-400">Jobs queued via Redis Streams. Real-time status polling as your audio processes.</p>
+        </div>
+      </div>
+
+      <!-- Backend URL config -->
+      <div class="mt-10 flex items-center gap-3">
+        <span class="text-slate-600 text-xs font-mono">API:</span>
+        <input id="backend-url" type="text" value="http://localhost:8000"
+          class="bg-surface-container-low border border-white/5 rounded-full px-4 py-1.5 text-xs font-mono text-slate-400 focus:outline-none focus:border-primary/30 w-64 transition-colors"
+          placeholder="http://127.0.0.1:8000"
+          onchange="saveBackendUrl(this.value)"/>
+        <button onclick="checkBackendHealth()" class="text-xs font-mono text-slate-500 hover:text-tertiary transition-colors flex items-center gap-1">
+          <span class="material-symbols-outlined text-sm">refresh</span>Ping
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Bottom player bar -->
+  <div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center px-6 bg-[#1e2024]/70 backdrop-blur-2xl rounded-full h-16 shadow-[0px_20px_40px_rgba(255,179,176,0.08)] gap-4 border border-white/5">
+    <span class="material-symbols-outlined text-secondary text-2xl fill-icon">play_circle</span>
+    <div>
+      <div class="text-secondary font-mono text-xs uppercase tracking-widest">Awaiting File</div>
+      <div class="text-slate-500 text-[10px]">No recording active</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     PAGE 2: PROCESSING
+════════════════════════════════════════════════════ -->
+<div id="page-processing" class="page flex-col min-h-screen pt-20 items-center justify-center relative z-10 overflow-hidden">
+
+  <!-- Extra ambient glows for processing -->
+  <div class="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary opacity-[0.08] blur-[120px] rounded-full pointer-events-none"></div>
+  <div class="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-secondary opacity-[0.06] blur-[120px] rounded-full pointer-events-none"></div>
+
+  <!-- Syncing badge top right -->
+  <div class="fixed top-20 right-12 opacity-30 pointer-events-none hidden lg:flex items-center justify-center">
+    <div class="relative w-28 h-28">
+      <div class="absolute inset-0 border border-outline-variant rounded-full flex items-center justify-center">
+        <div class="w-20 h-20 border border-outline-variant rounded-full spin-slow"></div>
+        <div class="absolute font-mono text-[9px] text-primary tracking-widest">SYNCING</div>
+      </div>
+    </div>
+  </div>
+
+  <main class="relative z-10 flex flex-col items-center w-full max-w-4xl px-6 text-center pb-40">
+
+    <!-- Waveform + percentage -->
+    <div class="relative w-full h-64 flex items-center justify-center mb-10">
+      <div class="absolute inset-0 flex items-center justify-center overflow-hidden">
+        <svg class="w-full h-full max-w-2xl" fill="none" viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg">
+          <path class="wave-mint opacity-50" d="M0 100C100 60 200 140 300 100C400 60 500 140 600 100C700 60 800 140 900 100" stroke="#82DDAA" stroke-linecap="round" stroke-width="3"/>
+          <path class="wave-lilac opacity-60" d="M-50 110C50 70 150 150 250 110C350 70 450 150 550 110C650 70 750 150 850 110" stroke="#CDB4DB" stroke-linecap="round" stroke-width="3"/>
+          <path class="wave-coral" d="M-100 90C0 50 100 130 200 90C300 50 400 130 500 90C600 50 700 130 800 90" stroke="#FF8E8B" stroke-linecap="round" stroke-width="5"/>
+        </svg>
+      </div>
+      <div class="relative z-20">
+        <div class="font-headline text-[7rem] md:text-[9rem] font-extrabold text-on-surface leading-none tracking-tighter">
+          <span id="proc-percent">0</span><span class="text-primary/40">%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status text -->
+    <div class="space-y-3 mb-16">
+      <h2 id="proc-stage" class="font-headline text-2xl md:text-3xl font-semibold text-primary tracking-tight">Queuing job...</h2>
+      <p id="proc-desc" class="text-slate-400 text-base max-w-md mx-auto">Uploading audio and placing job in Redis Stream queue.</p>
+    </div>
+
+    <!-- Job metadata bento -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 w-full max-w-3xl">
+      <div class="bg-surface-container-low rounded-lg p-5 flex flex-col gap-1.5 text-left border border-white/5">
+        <span class="font-mono text-[10px] text-secondary/60 uppercase tracking-widest">Source</span>
+        <span id="proc-source" class="font-semibold text-on-surface text-sm truncate">—</span>
+      </div>
+      <div class="bg-surface-container-low rounded-lg p-5 flex flex-col gap-1.5 text-left border border-white/5">
+        <span class="font-mono text-[10px] text-tertiary/60 uppercase tracking-widest">Job ID</span>
+        <span id="proc-jobid" class="font-mono text-on-surface text-xs truncate">—</span>
+      </div>
+      <div class="bg-surface-container-low rounded-lg p-5 flex flex-col gap-1.5 text-left border border-white/5">
+        <span class="font-mono text-[10px] text-primary/60 uppercase tracking-widest">Engine</span>
+        <span class="font-semibold text-on-surface text-sm">Whisper + pyannote</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- Bottom action pill -->
+  <footer class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-4">
+    <div class="bg-[#1e2024]/70 backdrop-blur-2xl px-8 py-4 rounded-full flex items-center gap-6 shadow-[0px_20px_40px_rgba(255,179,176,0.1)] border border-white/5">
+      <div class="flex items-center gap-3">
+        <div class="w-2 h-2 rounded-full bg-secondary pulse-dot"></div>
+        <span class="font-mono text-xs text-slate-300 uppercase tracking-widest">Processing Live Stream</span>
+      </div>
+      <div class="h-4 w-px bg-outline-variant"></div>
+      <button onclick="cancelJob()" class="flex items-center gap-2 text-slate-300 hover:text-error transition-colors">
+        <span class="material-symbols-outlined text-sm">cancel</span>
+        <span class="text-sm font-semibold">Cancel</span>
+      </button>
+    </div>
+    <div class="flex items-center gap-2 text-slate-600 text-xs font-mono">
+      <span class="material-symbols-outlined text-sm">lock</span>
+      Zero-knowledge encryption during transcription.
+    </div>
+  </footer>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     PAGE 3: EDITOR (Transcript View)
+════════════════════════════════════════════════════ -->
+<div id="page-editor" class="page flex-col h-screen pt-[64px] relative z-10">
+  <!-- Editor inner nav override -->
+  <div class="fixed top-0 w-full z-50 bg-[#111317]/80 backdrop-blur-xl border-b border-white/5">
+    <div class="flex justify-between items-center px-8 py-4">
+      <div class="flex items-center gap-8">
+        <span class="text-2xl font-headline font-bold text-primary cursor-pointer" onclick="goTo('upload')">The Fluid Studio</span>
+        <nav class="hidden md:flex gap-6">
+          <a class="text-primary font-bold tracking-tight cursor-pointer">Editor</a>
+          <a class="text-slate-400 font-semibold tracking-tight hover:text-primary transition-colors cursor-pointer" onclick="goTo('insights')">Insights</a>
+        </nav>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="bg-surface-container-low px-3 py-2 rounded-full flex items-center gap-2 border border-white/5">
+          <span class="material-symbols-outlined text-slate-400 text-sm">search</span>
+          <input id="editor-search" type="text" class="bg-transparent border-none focus:ring-0 text-sm w-40 text-on-surface placeholder-slate-600 outline-none" placeholder="Search transcript..." oninput="searchTranscript(this.value)"/>
+        </div>
+        <button class="p-2 text-slate-400 hover:text-primary transition-colors"><span class="material-symbols-outlined">settings</span></button>
+        <button class="p-2 text-slate-400 hover:text-primary transition-colors"><span class="material-symbols-outlined">account_circle</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex h-full overflow-hidden">
+    <!-- Main transcript area -->
+    <section class="flex-1 overflow-y-auto px-8 md:px-16 py-10 pb-32">
+      <header class="max-w-3xl mx-auto mb-12">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="px-3 py-1 bg-tertiary/10 text-tertiary text-xs font-mono rounded-full border border-tertiary/20">TRANSCRIBED</span>
+          <span id="ed-jobid" class="text-slate-500 font-mono text-xs">ID: —</span>
+        </div>
+        <h1 id="ed-title" class="text-4xl md:text-5xl font-headline font-semibold tracking-tight text-on-background mb-4">Transcript</h1>
+        <div class="flex items-center gap-6 text-slate-500 font-mono text-sm">
+          <span id="ed-date" class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-xs">calendar_today</span> —
+          </span>
+          <span id="ed-duration" class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-xs">schedule</span> —
+          </span>
+          <span id="ed-speakers" class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-xs">group</span> — speakers
+          </span>
+        </div>
+      </header>
+
+      <!-- Transcript blocks injected here -->
+      <div id="transcript-blocks" class="max-w-3xl mx-auto space-y-10 pb-32">
+        <div class="text-slate-600 font-mono text-sm text-center py-20">No transcript loaded yet.</div>
+      </div>
+    </section>
+
+    <!-- Right sidebar -->
+    <aside class="w-[320px] bg-[#181B21] border-l border-white/5 flex flex-col overflow-hidden shadow-[-10px_0px_30px_rgba(0,0,0,0.3)]">
+      <!-- Summary -->
+      <div class="p-6 border-b border-white/5 space-y-4 overflow-y-auto flex-1">
+        <div class="bg-surface-container p-5 rounded-lg space-y-3">
+          <h3 class="font-headline font-semibold text-primary text-sm">Summary Insights</h3>
+          <p id="sidebar-summary" class="text-xs text-on-surface-variant leading-relaxed">Awaiting transcription...</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-surface-container p-4 rounded-lg">
+            <span class="text-[10px] uppercase tracking-widest text-slate-500 block mb-1 font-mono">Segments</span>
+            <span id="sidebar-segments" class="text-on-surface font-bold font-mono text-lg">—</span>
+          </div>
+          <div class="bg-surface-container p-4 rounded-lg">
+            <span class="text-[10px] uppercase tracking-widest text-slate-500 block mb-1 font-mono">Speakers</span>
+            <span id="sidebar-speakers-count" class="text-tertiary font-bold font-mono text-lg">—</span>
+          </div>
+        </div>
+
+        <!-- Speaker breakdown -->
+        <div class="space-y-3">
+          <h4 class="text-xs font-bold uppercase tracking-widest text-slate-500">Speaker Breakdown</h4>
+          <div id="speaker-bars" class="space-y-3">
+            <!-- injected dynamically -->
+          </div>
+        </div>
+
+        <!-- Recording details -->
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold uppercase tracking-widest text-slate-500 mt-4 mb-2">Recording Details</h4>
+          <div class="bg-surface-container p-4 rounded-lg space-y-2.5">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-400">File</span>
+              <span id="det-file" class="text-on-surface font-mono truncate max-w-[120px]">—</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-400">Job ID</span>
+              <span id="det-jobid" class="text-on-surface font-mono truncate max-w-[120px]">—</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-400">Status</span>
+              <span id="det-status" class="text-tertiary font-mono">—</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-400">Speaker ID</span>
+              <span class="text-on-surface">Enabled</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Export -->
+        <div class="space-y-2 pt-2">
+          <h4 class="text-xs font-bold uppercase tracking-widest text-slate-500">Export</h4>
+          <div class="flex gap-2 flex-wrap">
+            <button onclick="exportTXT()" class="tag-pill cursor-pointer hover:bg-primary/20 transition-colors">
+              <span class="material-symbols-outlined text-xs">download</span> TXT
+            </button>
+            <button onclick="exportJSON()" class="tag-pill cursor-pointer hover:bg-primary/20 transition-colors">
+              <span class="material-symbols-outlined text-xs">download</span> JSON
+            </button>
+            <button onclick="exportSRT()" class="tag-pill cursor-pointer hover:bg-primary/20 transition-colors">
+              <span class="material-symbols-outlined text-xs">download</span> SRT
+            </button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Audio Player bar -->
+  <div class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[min(800px,90vw)] z-50">
+    <div class="bg-[#181b21]/90 backdrop-blur-2xl h-18 rounded-full px-6 py-3 flex items-center gap-5 shadow-[0px_20px_40px_rgba(255,179,176,0.1)] border border-white/5">
+      <div class="flex items-center gap-3">
+        <button class="text-slate-400 hover:text-white transition-colors"><span class="material-symbols-outlined">skip_previous</span></button>
+        <button id="btn-play" onclick="togglePlay()" class="w-11 h-11 rounded-full bg-secondary text-on-secondary flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg shadow-secondary/20">
+          <span id="play-icon" class="material-symbols-outlined fill-icon">play_arrow</span>
+        </button>
+        <button class="text-slate-400 hover:text-white transition-colors"><span class="material-symbols-outlined">skip_next</span></button>
+      </div>
+      <div class="flex-1 space-y-1">
+        <div class="flex justify-between font-mono text-[10px] text-slate-500 uppercase tracking-widest">
+          <span id="time-current">0:00</span>
+          <span id="time-total">0:00</span>
+        </div>
+        <div id="player-progress" class="h-1.5 w-full bg-surface-variant rounded-full relative" onclick="seekAudio(event)">
+          <div id="progress-fill" class="absolute top-0 left-0 h-full w-0 progress-shimmer rounded-full shadow-[0_0_10px_#ffb3b0] transition-all"></div>
+          <div id="progress-thumb" class="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/2 w-3 h-3 bg-white rounded-full shadow-md transition-all"></div>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="text-slate-400 hover:text-primary transition-colors"><span class="material-symbols-outlined text-sm">speed</span></button>
+        <div class="flex items-center gap-2 text-slate-400">
+          <span class="material-symbols-outlined text-sm">volume_up</span>
+          <div class="w-14 h-1 bg-surface-variant rounded-full"><div class="h-full w-3/4 bg-slate-400 rounded-full"></div></div>
+        </div>
+        <button class="text-slate-400 hover:text-primary transition-colors"><span class="material-symbols-outlined text-sm">more_vert</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     PAGE 4: INSIGHTS
+════════════════════════════════════════════════════ -->
+<div id="page-insights" class="page flex-col min-h-screen pt-20 relative z-10">
+  <main class="flex-1 overflow-y-auto">
+    <div class="max-w-5xl mx-auto px-8 py-12 space-y-10">
+
+      <!-- Header -->
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="flex items-center gap-3 mb-3">
+            <span id="ins-live-badge" class="px-3 py-1 bg-tertiary/10 text-tertiary text-xs font-mono rounded-full border border-tertiary/20 hidden">LIVE FEED</span>
+          </div>
+          <h1 id="ins-title" class="text-4xl font-headline font-semibold text-on-background tracking-tight mb-2">Session Insights</h1>
+          <p id="ins-subtitle" class="text-slate-400 text-base">Transcript analytics and speaker engagement overview.</p>
+        </div>
+        <button onclick="goTo('editor')" class="flex items-center gap-2 text-sm text-slate-400 hover:text-primary transition-colors font-mono border border-white/10 px-4 py-2 rounded-full">
+          <span class="material-symbols-outlined text-sm">edit_note</span> View Editor
+        </button>
+      </div>
+
+      <!-- Stat cards row -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-surface-container-low rounded-lg p-5 border border-white/5">
+          <span class="text-[10px] uppercase tracking-widest text-slate-500 font-mono block mb-2">Total Segments</span>
+          <span id="ins-segments" class="text-3xl font-bold font-mono text-on-surface">—</span>
+        </div>
+        <div class="bg-surface-container-low rounded-lg p-5 border border-white/5">
+          <span class="text-[10px] uppercase tracking-widest text-slate-500 font-mono block mb-2">Speakers</span>
+          <span id="ins-speakers" class="text-3xl font-bold font-mono text-primary">—</span>
+        </div>
+        <div class="bg-surface-container-low rounded-lg p-5 border border-white/5">
+          <span class="text-[10px] uppercase tracking-widest text-slate-500 font-mono block mb-2">Duration</span>
+          <span id="ins-duration" class="text-3xl font-bold font-mono text-secondary">—</span>
+        </div>
+        <div class="bg-surface-container-low rounded-lg p-5 border border-white/5">
+          <span class="text-[10px] uppercase tracking-widest text-slate-500 font-mono block mb-2">Words Est.</span>
+          <span id="ins-words" class="text-3xl font-bold font-mono text-tertiary">—</span>
+        </div>
+      </div>
+
+      <!-- Speaker engagement -->
+      <div class="bg-surface-container-low rounded-lg p-6 border border-white/5 space-y-5">
+        <div class="flex justify-between items-center">
+          <h3 class="font-headline font-semibold text-on-surface">Speaker Engagement</h3>
+          <span class="text-xs font-mono text-slate-500">by talk time</span>
+        </div>
+        <div id="ins-speaker-bars" class="space-y-4">
+          <!-- injected -->
+        </div>
+      </div>
+
+      <!-- Transcript preview table -->
+      <div class="bg-surface-container-low rounded-lg border border-white/5 overflow-hidden">
+        <div class="p-5 border-b border-white/5 flex items-center justify-between">
+          <h3 class="font-headline font-semibold text-on-surface">Segment Log</h3>
+          <span class="text-xs font-mono text-slate-500">All segments</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-white/5">
+                <th class="text-left px-5 py-3 text-[10px] font-mono uppercase tracking-widest text-slate-500">Speaker</th>
+                <th class="text-left px-5 py-3 text-[10px] font-mono uppercase tracking-widest text-slate-500">Start</th>
+                <th class="text-left px-5 py-3 text-[10px] font-mono uppercase tracking-widest text-slate-500">End</th>
+                <th class="text-left px-5 py-3 text-[10px] font-mono uppercase tracking-widest text-slate-500">Excerpt</th>
+              </tr>
+            </thead>
+            <tbody id="ins-table-body">
+              <tr><td colspan="4" class="text-center py-10 text-slate-600 font-mono text-xs">No data</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Flow insight box -->
+      <div class="p-6 rounded-lg bg-gradient-to-br from-tertiary/10 to-transparent border border-tertiary/20 flex gap-4">
+        <span class="material-symbols-outlined text-tertiary fill-icon mt-0.5">analytics</span>
+        <div>
+          <h4 class="text-sm font-bold text-tertiary mb-1">Flow Insights</h4>
+          <p id="ins-flow" class="text-xs text-on-surface-variant leading-relaxed">Run a transcription to generate insights.</p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+
+<!-- Toast notification -->
+<div id="toast"></div>
+
+<!-- Hidden audio element -->
+<audio id="audio-player" preload="metadata"></audio>
+
+
+<!-- ═══════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════════ -->
+<script>
+// ─── State ──────────────────────────────────────────
+const state = {
+  currentPage: 'upload',
+  backendUrl: localStorage.getItem('fluid_backend') || 'http://127.0.0.1:8000',
+  selectedFile: null,
+  currentJobId: null,
+  pollTimer: null,
+  transcriptData: null,
+  audioUrl: null,
+};
+
+// ─── Init ────────────────────────────────────────────
+window.onload = () => {
+  document.getElementById('backend-url').value = state.backendUrl;
+  checkBackendHealth();
+  // Restore last transcript if exists
+  const saved = localStorage.getItem('fluid_last_transcript');
+  if (saved) {
+    try {
+      state.transcriptData = JSON.parse(saved);
+      unlockNav();
+    } catch(e) {}
+  }
+};
+
+// ─── Navigation ──────────────────────────────────────
+function goTo(page) {
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.remove('active');
+    p.style.display = 'none';
+  });
+  const el = document.getElementById('page-' + page);
+  el.style.display = 'flex';
+  setTimeout(() => el.classList.add('active'), 10);
+  state.currentPage = page;
+  // Hide global navbar on editor (has its own)
+  document.getElementById('navbar').style.display = page === 'editor' ? 'none' : 'flex';
+
+  if (page === 'insights') renderInsights();
+}
+
+function unlockNav() {
+  document.getElementById('nav-editor').classList.remove('opacity-40', 'pointer-events-none');
+  document.getElementById('nav-insights').classList.remove('opacity-40', 'pointer-events-none');
+}
+
+// ─── Backend URL ─────────────────────────────────────
+function saveBackendUrl(url) {
+  state.backendUrl = url.trim().replace(/\/$/, '');
+  localStorage.setItem('fluid_backend', state.backendUrl);
+  checkBackendHealth();
+}
+
+async function checkBackendHealth() {
+  const dot = document.getElementById('api-dot');
+  const label = document.getElementById('api-label');
+  dot.style.background = '#ffd464';
+  label.textContent = 'Checking...';
+  try {
+    const res = await fetch(state.backendUrl + '/health', { signal: AbortSignal.timeout(4000) });
+    if (res.ok) {
+      dot.style.background = '#90ecb7';
+      label.textContent = 'API Online';
+    } else {
+      throw new Error('not ok');
+    }
+  } catch(e) {
+    dot.style.background = '#ff8e8b';
+    label.textContent = 'API Offline';
+  }
+}
+
+// ─── File Handling ───────────────────────────────────
+function onDragOver(e) {
+  e.preventDefault();
+  document.getElementById('dropzone').classList.add('dropzone-active');
+}
+function onDragLeave(e) {
+  document.getElementById('dropzone').classList.remove('dropzone-active');
+}
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropzone').classList.remove('dropzone-active');
+  const f = e.dataTransfer.files[0];
+  if (f) setFile(f);
+}
+function onFileSelected(e) {
+  const f = e.target.files[0];
+  if (f) setFile(f);
+}
+function setFile(f) {
+  const allowed = ['audio/wav','audio/mp3','audio/mpeg','audio/flac','audio/x-flac','audio/m4a','audio/mp4','audio/ogg'];
+  if (!allowed.includes(f.type) && !f.name.match(/\.(wav|mp3|flac|m4a|ogg)$/i)) {
+    showToast('Unsupported file type. Use WAV, MP3, FLAC, or M4A.', 'error'); return;
+  }
+  if (f.size > 500 * 1024 * 1024) {
+    showToast('File too large. Max 500MB.', 'error'); return;
+  }
+  state.selectedFile = f;
+  document.getElementById('selected-filename').textContent = f.name;
+  document.getElementById('selected-filesize').textContent = (f.size / (1024*1024)).toFixed(1) + ' MB';
+  document.getElementById('dropzone-idle').classList.add('hidden');
+  document.getElementById('dropzone-idle').classList.remove('flex');
+  document.getElementById('dropzone-file').classList.remove('hidden');
+  document.getElementById('dropzone-file').classList.add('flex');
+}
+function clearFile(e) {
+  e.stopPropagation();
+  state.selectedFile = null;
+  document.getElementById('file-input').value = '';
+  document.getElementById('dropzone-idle').classList.remove('hidden');
+  document.getElementById('dropzone-file').classList.add('hidden');
+  document.getElementById('dropzone-file').classList.remove('flex');
+}
+
+// ─── Upload & Start Job ──────────────────────────────
+async function uploadFile(e) {
+  e.stopPropagation();
+  if (!state.selectedFile) return;
+
+  const btn = document.getElementById('btn-upload');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">autorenew</span> Uploading...';
+
+  const formData = new FormData();
+  formData.append('file', state.selectedFile);
+
+  try {
+    const res = await fetch(state.backendUrl + '/api/upload', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({detail: 'Upload failed'}));
+      throw new Error(err.detail || 'Upload failed');
+    }
+
+    const data = await res.json();
+    state.currentJobId = data.id;  // JobResponse uses 'id', not 'job_id'
+
+    // Switch to processing page
+    document.getElementById('proc-source').textContent = state.selectedFile.name;
+    document.getElementById('proc-jobid').textContent = data.id;
+    goTo('processing');
+    startPolling(data.id);
+
+  } catch(err) {
+    showToast('Upload failed: ' + err.message, 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-symbols-outlined text-sm fill-icon">rocket_launch</span> Transcribe Now';
+  }
+}
+
+// ─── Job Polling ─────────────────────────────────────
+const STAGE_MAP = {
+  'queued':       { pct: 5,  label: 'Job queued in Redis Stream...', desc: 'Waiting for worker to pick up the job.' },
+  'processing':   { pct: 20, label: 'Transcribing audio...', desc: 'Whisper model is converting speech to text.' },
+  'transcribing': { pct: 40, label: 'Running Whisper transcription...', desc: 'Extracting words and timestamps from audio.' },
+  'diarizing':    { pct: 65, label: 'Identifying speakers...', desc: 'Analyzing vocal patterns to separate conversational layers.' },
+  'finalizing':   { pct: 85, label: 'Assembling transcript...', desc: 'Merging speaker labels with transcription segments.' },
+  'completed':    { pct: 100,label: 'Complete!', desc: 'Transcript ready. Opening editor...' },
+  'failed':       { pct: 0,  label: 'Job failed', desc: 'Something went wrong. Please try again.' },
+};
+
+function startPolling(jobId) {
+  if (state.pollTimer) clearInterval(state.pollTimer);
+  state.pollTimer = setInterval(() => pollStatus(jobId), 2000);
+  pollStatus(jobId);
+}
+
+async function pollStatus(jobId) {
+  try {
+    const res = await fetch(`${state.backendUrl}/api/jobs/${jobId}`);
+    if (!res.ok) return;
+    const data = await res.json();
+
+    // Your backend uses: pending, processing, completed, failed
+    const status = data.status || 'pending';
+
+    // Map your backend statuses to UI stages
+    const stageMap = {
+      'pending':    { pct: 10, label: 'Job queued in Redis Stream...', desc: 'Waiting for worker to pick up the job.' },
+      'processing': { pct: 35, label: 'Transcribing audio...', desc: 'Whisper model is converting speech to text.' },
+      'diarizing':  { pct: 65, label: 'Identifying speakers...', desc: 'Analyzing vocal patterns to separate conversational layers.' },
+      'completed':  { pct: 100, label: 'Complete!', desc: 'Transcript ready. Opening editor...' },
+      'failed':     { pct: 0,  label: 'Job failed', desc: 'Something went wrong. Please try again.' },
+    };
+
+    const stage = stageMap[status] || stageMap['pending'];
+    animatePct(stage.pct);
+    document.getElementById('proc-stage').textContent = stage.label;
+    document.getElementById('proc-desc').textContent = stage.desc;
+
+    if (status === 'completed') {
+      clearInterval(state.pollTimer);
+      state.pollTimer = null;
+      setTimeout(() => loadTranscript(jobId), 1200);
+    } else if (status === 'failed') {
+      clearInterval(state.pollTimer);
+      showToast('Transcription failed: ' + (data.error_message || 'Unknown error'), 'error');
+      setTimeout(() => goTo('upload'), 2500);
+    }
+  } catch(e) {
+    // silently retry
+  }
+}
+
+let currentPct = 0;
+function animatePct(target) {
+  if (target <= currentPct) return;
+  const step = () => {
+    if (currentPct < target) {
+      currentPct += 1;
+      document.getElementById('proc-percent').textContent = currentPct;
+      requestAnimationFrame(step);
+    }
+  };
+  requestAnimationFrame(step);
+}
+
+async function loadTranscript(jobId) {
+  try {
+    const res = await fetch(`${state.backendUrl}/api/jobs/${jobId}/transcript`);
+    if (!res.ok) throw new Error('Failed to load transcript');
+    const data = await res.json();
+
+    // Your TranscriptResponse schema: map to frontend expected format
+    // Backend returns: { id, job_id, segments (JSON string or array), created_at }
+    // Also fetch job for filename
+    const jobRes = await fetch(`${state.backendUrl}/api/jobs/${jobId}`);
+    const jobData = jobRes.ok ? await jobRes.json() : {};
+
+    // Map backend SegmentResponse fields → frontend format
+    // Backend: { speaker_label, start_time, end_time, text }
+    // Frontend expects: { speaker, start, end, text }
+    const rawSegments = data.segments || [];
+    const segments = rawSegments.map(s => ({
+      speaker: s.speaker_label,
+      start:   s.start_time,
+      end:     s.end_time,
+      text:    s.text,
+    }));
+
+    state.transcriptData = {
+      job_id:   jobId,
+      filename: jobData.filename || 'transcript',
+      status:   jobData.status || 'completed',
+      duration: data.duration_seconds || 0,
+      language: data.language || '',
+      full_text: data.full_text || '',
+      segments,
+    };
+
+    localStorage.setItem('fluid_last_transcript', JSON.stringify(state.transcriptData));
+    unlockNav();
+    renderEditor(state.transcriptData);
+    loadAudioForJob(jobId);   // ← load audio for Spotify sync
+    goTo('editor');
+  } catch(e) {
+    showToast('Could not load transcript: ' + e.message, 'error');
+    loadDemoTranscript(jobId);
+  }
+}
+
+function loadDemoTranscript(jobId) {
+  // Demo data matching your backend schema
+  state.transcriptData = {
+    job_id: jobId || 'demo-001',
+    filename: state.selectedFile?.name || 'demo_audio.mp3',
+    status: 'completed',
+    segments: [
+      { speaker: 'SPEAKER_00', start: 0.0,  end: 4.5,  text: 'Welcome to the transcription session. Today we are testing the Audio Transcription Pipeline built with FastAPI and Redis Streams.' },
+      { speaker: 'SPEAKER_01', start: 5.0,  end: 10.2, text: 'That is correct. The pipeline uses Whisper for transcription and pyannote for speaker diarization, which separates individual voices automatically.' },
+      { speaker: 'SPEAKER_00', start: 10.8, end: 16.3, text: 'The Redis Stream queue handles job distribution efficiently. Each audio file gets a unique job ID and workers consume from the stream consumer group.' },
+      { speaker: 'SPEAKER_01', start: 17.0, end: 22.1, text: 'Exactly. And the SQLAlchemy models track job state transitions from queued, to processing, to diarizing, and finally to completed with all segments stored.' },
+      { speaker: 'SPEAKER_00', start: 23.0, end: 28.5, text: 'This frontend polls the job status endpoint every two seconds and updates the progress visualization in real time as the backend processes the audio.' },
+    ]
+  };
+  unlockNav();
+  renderEditor(state.transcriptData);
+  goTo('editor');
+  showToast('Showing demo transcript (backend returned error)', 'error');
+}
+
+// ─── Cancel Job ──────────────────────────────────────
+async function cancelJob() {
+  if (state.currentJobId) {
+    try {
+      await fetch(`${state.backendUrl}/jobs/${state.currentJobId}/cancel`, { method: 'POST' });
+    } catch(e) {}
+  }
+  clearInterval(state.pollTimer);
+  currentPct = 0;
+  goTo('upload');
+  clearFile({ stopPropagation: () => {} });
+  showToast('Job cancelled', 'error');
+}
+
+// ─── Render Editor ───────────────────────────────────
+const SPEAKER_COLORS = ['#eacff8','#ffb3b0','#90ecb7','#ffd464'];
+const SPEAKER_BG = ['rgba(234,207,248,0.12)','rgba(255,179,176,0.12)','rgba(144,236,183,0.12)','rgba(255,212,100,0.12)'];
+
+function renderEditor(data) {
+  if (!data) return;
+
+  // Header
+  document.getElementById('ed-jobid').textContent = 'ID: ' + (data.job_id || '—');
+  document.getElementById('ed-title').textContent = data.filename || 'Transcript';
+  document.getElementById('ed-date').innerHTML = `<span class="material-symbols-outlined text-xs">calendar_today</span> ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})}`;
+
+  const segs = data.segments || [];
+  const maxEnd = data.duration || (segs.length ? Math.max(...segs.map(s => s.end || 0)) : 0);
+  document.getElementById('ed-duration').innerHTML = `<span class="material-symbols-outlined text-xs">schedule</span> ${fmtTime(maxEnd)} total`;
+
+  const speakers = [...new Set(segs.map(s => s.speaker))];
+  document.getElementById('ed-speakers').innerHTML = `<span class="material-symbols-outlined text-xs">group</span> ${speakers.length} speaker${speakers.length !== 1 ? 's' : ''}`;
+
+  // Sidebar
+  document.getElementById('sidebar-segments').textContent = segs.length;
+  document.getElementById('sidebar-speakers-count').textContent = speakers.length;
+  document.getElementById('det-file').textContent = data.filename || '—';
+  document.getElementById('det-jobid').textContent = (data.job_id || '—').substring(0, 12) + '...';
+  document.getElementById('det-status').textContent = data.status || 'completed';
+
+  // Summary
+  const wordCount = segs.reduce((acc, s) => acc + (s.text || '').split(' ').length, 0);
+  document.getElementById('sidebar-summary').textContent =
+    `${segs.length} segments · ${speakers.length} speaker${speakers.length>1?'s':''} · ~${wordCount} words. Transcribed with Whisper + pyannote diarization.`;
+
+  // Speaker bars
+  renderSpeakerBars(segs, speakers, 'speaker-bars');
+
+  // Blocks
+  const container = document.getElementById('transcript-blocks');
+  container.innerHTML = '';
+  segs.forEach((seg, i) => {
+    const spkIdx = speakers.indexOf(seg.speaker);
+    const color = SPEAKER_COLORS[spkIdx % SPEAKER_COLORS.length];
+    const bg = SPEAKER_BG[spkIdx % SPEAKER_BG.length];
+    const div = document.createElement('div');
+    div.className = `transcript-block group transition-all duration-300 pl-5 rounded-r-lg`;
+    div.style.borderLeft = `3px solid transparent`;
+    div.dataset.spkIdx = spkIdx;
+    div.dataset.text = (seg.text || '').toLowerCase();
+    div.dataset.segIdx = i;
+    div.innerHTML = `
+      <div class="flex items-center gap-3 mb-2.5">
+        <span class="spk-badge px-3 py-1 rounded-full text-xs font-bold tracking-wider font-mono transition-all duration-300" style="background:${bg};color:${color}">
+          ${seg.speaker || 'SPEAKER'}
+        </span>
+        <span class="font-mono text-[12px] text-slate-500">${fmtTimestamp(seg.start)}</span>
+        ${seg.end ? `<span class="font-mono text-[10px] text-slate-600">→ ${fmtTimestamp(seg.end)}</span>` : ''}
+        <span class="opacity-0 group-hover:opacity-100 transition-opacity ml-auto pr-2">
+          <span class="material-symbols-outlined text-slate-500 text-base cursor-pointer hover:text-primary transition-colors fill-icon" title="Play from here">play_circle</span>
+        </span>
+      </div>
+      <p class="text-[16px] leading-relaxed text-on-surface-variant font-medium segment-text transition-all duration-300">${escapeHtml(seg.text || '')}</p>
+    `;
+    div.addEventListener('mouseenter', () => {
+      if (!div.classList.contains('seg-active')) div.style.borderLeftColor = color;
+    });
+    div.addEventListener('mouseleave', () => {
+      if (!div.classList.contains('seg-active')) div.style.borderLeftColor = 'transparent';
+    });
+    div.addEventListener('click', () => seekToSegment(seg.start));
+    container.appendChild(div);
+  });
+}
+
+function renderSpeakerBars(segs, speakers, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+  const totals = {};
+  segs.forEach(s => {
+    const dur = (s.end || 0) - (s.start || 0);
+    totals[s.speaker] = (totals[s.speaker] || 0) + dur;
+  });
+  const total = Object.values(totals).reduce((a,b)=>a+b, 0) || 1;
+  speakers.forEach((spk, i) => {
+    const pct = Math.round((totals[spk] || 0) / total * 100);
+    const color = SPEAKER_COLORS[i % SPEAKER_COLORS.length];
+    container.insertAdjacentHTML('beforeend', `
+      <div class="space-y-1.5">
+        <div class="flex justify-between text-xs">
+          <span class="text-on-surface font-medium font-mono">${spk}</span>
+          <span class="text-slate-500">${pct}%</span>
+        </div>
+        <div class="h-1.5 w-full bg-surface-container-lowest rounded-full overflow-hidden">
+          <div class="h-full rounded-full transition-all duration-700" style="width:${pct}%;background:${color};box-shadow:0 0 8px ${color}66"></div>
+        </div>
+      </div>
+    `);
+  });
+}
+
+// ─── Search ──────────────────────────────────────────
+function searchTranscript(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('#transcript-blocks .transcript-block').forEach(block => {
+    const text = block.dataset.text || '';
+    if (!q || text.includes(q)) {
+      block.style.opacity = '1';
+      // Highlight
+      const p = block.querySelector('.segment-text');
+      if (p && q) {
+        p.innerHTML = escapeHtml(p.textContent).replace(
+          new RegExp(escapeRegex(escapeHtml(q)), 'gi'),
+          m => `<mark class="bg-primary/30 text-primary px-0.5 rounded">${m}</mark>`
+        );
+      } else if (p) {
+        p.innerHTML = escapeHtml(p.textContent);
+      }
+    } else {
+      block.style.opacity = '0.2';
+    }
+  });
+}
+
+// ─── Insights Page ───────────────────────────────────
+function renderInsights() {
+  const data = state.transcriptData;
+  if (!data) return;
+  const segs = data.segments || [];
+  const speakers = [...new Set(segs.map(s => s.speaker))];
+  const maxEnd = segs.length ? Math.max(...segs.map(s => s.end || 0)) : 0;
+  const wordCount = segs.reduce((acc, s) => acc + (s.text || '').split(' ').length, 0);
+
+  document.getElementById('ins-title').textContent = data.filename || 'Session Insights';
+  document.getElementById('ins-subtitle').textContent = `${segs.length} segments · ${speakers.length} speakers · ${fmtTime(maxEnd)} duration`;
+  document.getElementById('ins-segments').textContent = segs.length;
+  document.getElementById('ins-speakers').textContent = speakers.length;
+  document.getElementById('ins-duration').textContent = fmtTime(maxEnd);
+  document.getElementById('ins-words').textContent = wordCount;
+
+  renderSpeakerBars(segs, speakers, 'ins-speaker-bars');
+
+  // Table
+  const tbody = document.getElementById('ins-table-body');
+  tbody.innerHTML = '';
+  segs.slice(0, 50).forEach((seg, i) => {
+    const spkIdx = speakers.indexOf(seg.speaker);
+    const color = SPEAKER_COLORS[spkIdx % SPEAKER_COLORS.length];
+    const bg = SPEAKER_BG[spkIdx % SPEAKER_BG.length];
+    tbody.insertAdjacentHTML('beforeend', `
+      <tr class="border-b border-white/5 hover:bg-white/2 transition-colors">
+        <td class="px-5 py-3">
+          <span class="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold" style="background:${bg};color:${color}">${seg.speaker}</span>
+        </td>
+        <td class="px-5 py-3 font-mono text-xs text-slate-400">${fmtTimestamp(seg.start)}</td>
+        <td class="px-5 py-3 font-mono text-xs text-slate-400">${fmtTimestamp(seg.end || 0)}</td>
+        <td class="px-5 py-3 text-xs text-slate-300 max-w-xs truncate">${escapeHtml((seg.text || '').substring(0, 80))}${(seg.text||'').length > 80 ? '...' : ''}</td>
+      </tr>
+    `);
+  });
+
+  // Flow insight
+  const avgWordsPerSeg = wordCount / (segs.length || 1);
+  document.getElementById('ins-flow').textContent =
+    `${segs.length} segments with ${speakers.length} distinct speaker${speakers.length>1?'s':''} detected. ` +
+    `Average segment length: ${Math.round(avgWordsPerSeg)} words. ` +
+    `Total audio processed: ${fmtTime(maxEnd)}. ` +
+    `Transcript generated using OpenAI Whisper + pyannote speaker diarization.`;
+}
+
+// ─── Audio Player + Spotify-style Sync ───────────────
+let audioIsPlaying = false;
+let activeSegIdx = -1;
+state.audioPlayer = document.getElementById('audio-player');
+
+// Load audio from backend when transcript is ready
+window.loadAudioForJob = function loadAudioForJob(jobId) {
+  const audioUrl = `${state.backendUrl}/api/audio/${jobId}`;
+  state.audioPlayer.src = audioUrl;
+  state.audioPlayer.load();
+  state.audioPlayer.onerror = () => {
+    // Backend may not have audio endpoint yet — show hint
+    showToast('Audio endpoint not found. Add GET /api/audio/{job_id} to backend.', 'error');
+  };
+}
+
+// Core sync loop — runs on every timeupdate (every ~250ms)
+state.audioPlayer.addEventListener('timeupdate', () => {
+  const curr = state.audioPlayer.currentTime;
+  const dur  = state.audioPlayer.duration || 1;
+  const pct  = (curr / dur) * 100;
+
+  // Update progress bar
+  document.getElementById('progress-fill').style.width  = pct + '%';
+  document.getElementById('progress-thumb').style.left  = pct + '%';
+  document.getElementById('time-current').textContent   = fmtTime(curr);
+  document.getElementById('time-total').textContent     = fmtTime(dur);
+
+  // ── Spotify sync: find active segment ──
+  if (!state.transcriptData) return;
+  const segs = state.transcriptData.segments || [];
+  let newIdx = -1;
+  for (let i = 0; i < segs.length; i++) {
+    if (curr >= segs[i].start && curr < (segs[i].end || segs[i].start + 5)) {
+      newIdx = i; break;
+    }
+  }
+  // If past all segment ends, keep last
+  if (newIdx === -1 && segs.length && curr >= segs[segs.length-1].start) {
+    newIdx = segs.length - 1;
+  }
+
+  if (newIdx !== activeSegIdx) {
+    // Deactivate old
+    if (activeSegIdx >= 0) {
+      const old = document.querySelector(`[data-seg-idx="${activeSegIdx}"]`);
+      if (old) deactivateSegment(old);
+    }
+    // Activate new
+    activeSegIdx = newIdx;
+    if (newIdx >= 0) {
+      const el = document.querySelector(`[data-seg-idx="${newIdx}"]`);
+      if (el) {
+        activateSegment(el);
+        // Auto-scroll: center the active segment in view
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }
+});
+
+function activateSegment(el) {
+  el.classList.add('seg-active');
+  // Make text bright white, big
+  const p = el.querySelector('.segment-text');
+  if (p) {
+    p.style.color = '#ffffff';
+    p.style.fontSize = '18px';
+    p.style.fontWeight = '600';
+    p.style.transition = 'all 0.3s ease';
+  }
+  // Glow left border
+  const spkIdx = parseInt(el.dataset.spkIdx || '0');
+  const colors = ['#eacff8','#ffb3b0','#90ecb7','#ffd464'];
+  el.style.borderLeftColor = colors[spkIdx % colors.length];
+  el.style.background = 'rgba(255,255,255,0.03)';
+  el.style.borderRadius = '0 12px 12px 0';
+  // Pulse the speaker badge
+  const badge = el.querySelector('.spk-badge');
+  if (badge) badge.style.boxShadow = `0 0 12px ${colors[spkIdx % colors.length]}88`;
+}
+
+function deactivateSegment(el) {
+  el.classList.remove('seg-active');
+  const p = el.querySelector('.segment-text');
+  if (p) {
+    p.style.color = '';
+    p.style.fontSize = '';
+    p.style.fontWeight = '';
+  }
+  el.style.borderLeftColor = 'transparent';
+  el.style.background = '';
+  el.style.borderRadius = '';
+  const badge = el.querySelector('.spk-badge');
+  if (badge) badge.style.boxShadow = '';
+}
+
+state.audioPlayer.addEventListener('ended', () => {
+  audioIsPlaying = false;
+  document.getElementById('play-icon').textContent = 'play_arrow';
+  // Deactivate last segment
+  if (activeSegIdx >= 0) {
+    const el = document.querySelector(`[data-seg-idx="${activeSegIdx}"]`);
+    if (el) deactivateSegment(el);
+    activeSegIdx = -1;
+  }
+});
+
+function togglePlay() {
+  if (!state.audioPlayer.src || state.audioPlayer.src === window.location.href) {
+    showToast('No audio file loaded', 'error'); return;
+  }
+  if (audioIsPlaying) {
+    state.audioPlayer.pause();
+    document.getElementById('play-icon').textContent = 'play_arrow';
+    document.getElementById('transcript-blocks').classList.remove('audio-playing');
+  } else {
+    state.audioPlayer.play().catch(() => showToast('Playback failed', 'error'));
+    document.getElementById('play-icon').textContent = 'pause';
+    document.getElementById('transcript-blocks').classList.add('audio-playing');
+  }
+  audioIsPlaying = !audioIsPlaying;
+}
+
+function seekAudio(e) {
+  const bar  = document.getElementById('player-progress');
+  const rect = bar.getBoundingClientRect();
+  const pct  = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  if (state.audioPlayer.duration) {
+    state.audioPlayer.currentTime = pct * state.audioPlayer.duration;
+    // Reset active segment so sync re-runs immediately
+    activeSegIdx = -1;
+  }
+}
+
+// Click on a transcript segment → jump audio to that time
+function seekToSegment(startTime) {
+  if (state.audioPlayer.src && state.audioPlayer.src !== window.location.href) {
+    state.audioPlayer.currentTime = startTime;
+    if (!audioIsPlaying) {
+      state.audioPlayer.play().catch(() => {});
+      document.getElementById('play-icon').textContent = 'pause';
+      document.getElementById('transcript-blocks').classList.add('audio-playing');
+      audioIsPlaying = true;
+    }
+    activeSegIdx = -1; // force re-sync
+  }
+}
+
+// ─── Export ──────────────────────────────────────────
+function exportTXT() {
+  if (!state.transcriptData) { showToast('No transcript loaded', 'error'); return; }
+  const segs = state.transcriptData.segments || [];
+  const txt = segs.map(s => `[${s.speaker}] ${fmtTimestamp(s.start)}\n${s.text}\n`).join('\n');
+  download(txt, (state.transcriptData.filename || 'transcript') + '.txt', 'text/plain');
+  showToast('Exported as TXT', 'success');
+}
+function exportJSON() {
+  if (!state.transcriptData) { showToast('No transcript loaded', 'error'); return; }
+  download(JSON.stringify(state.transcriptData, null, 2), (state.transcriptData.filename || 'transcript') + '.json', 'application/json');
+  showToast('Exported as JSON', 'success');
+}
+function exportSRT() {
+  if (!state.transcriptData) { showToast('No transcript loaded', 'error'); return; }
+  const segs = state.transcriptData.segments || [];
+  const srt = segs.map((s, i) => `${i+1}\n${srtTime(s.start)} --> ${srtTime(s.end||s.start+2)}\n${s.speaker}: ${s.text}\n`).join('\n');
+  download(srt, (state.transcriptData.filename || 'transcript') + '.srt', 'text/plain');
+  showToast('Exported as SRT', 'success');
+}
+function srtTime(sec) {
+  const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = Math.floor(sec%60), ms = Math.round((sec%1)*1000);
+  return `${pad(h)}:${pad(m)}:${pad(s)},${String(ms).padStart(3,'0')}`;
+}
+function download(content, filename, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], {type}));
+  a.download = filename;
+  a.click();
+}
+
+// ─── Helpers ─────────────────────────────────────────
+function fmtTime(sec) {
+  if (!sec || isNaN(sec)) return '—';
+  const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+  return `${m}:${pad(s)}`;
+}
+function fmtTimestamp(sec) {
+  if (sec == null || isNaN(sec)) return '—';
+  const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = Math.floor(sec%60);
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+function pad(n) { return String(n).padStart(2,'0'); }
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+let toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = '', 3000);
+}
+
+// ─── Load demo on no backend ─────────────────────────
+// Allow loading a demo transcript directly without upload
+window.loadDemo = function() {
+  state.currentJobId = 'demo-' + Date.now();
+  loadDemoTranscript(state.currentJobId);
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: audio-pipeline-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: HF_TOKEN
+        sync: false
+      - key: UPLOAD_DIR
+        value: uploads
+      - key: MAX_FILE_SIZE_MB
+        value: 50
+
+  - type: worker
+    name: audio-pipeline-worker
+    runtime: docker
+    dockerfilePath: ./Dockerfile.worker
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: HF_TOKEN
+        sync: false
+      - key: UPLOAD_DIR
+        value: uploads
+      - key: MAX_FILE_SIZE_MB
+        value: 50

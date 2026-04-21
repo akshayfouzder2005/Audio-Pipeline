@@ -8,8 +8,8 @@ from app.database import Base
 class Job(Base):
     __tablename__ = "jobs"
 
-    file_path = Column(String(500), nullable=True)
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    file_path = Column(String(500), nullable=True)
     filename = Column(String(255))
     status = Column(String(50), default="pending")
     error_message = Column(Text, nullable=True)
@@ -17,7 +17,6 @@ class Job(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     transcript = relationship("Transcript", back_populates="job", uselist=False)
-
 
 class Transcript(Base):
     __tablename__ = "transcripts"
@@ -31,7 +30,6 @@ class Transcript(Base):
 
     job = relationship("Job", back_populates="transcript")
     segments = relationship("Segment", back_populates="transcript")
-
 
 class Segment(Base):
     __tablename__ = "segments"

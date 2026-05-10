@@ -1,14 +1,28 @@
 import uuid
-from sqlalchemy import Column, String, Float, Text, ForeignKey, DateTime
+from sqlalchemy import Column, String, Float, Text, ForeignKey, DateTime, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
 
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    username = Column(String(100), unique=True, nullable=False, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    jobs = relationship("Job", back_populates="user")
+
+
 class Job(Base):
     __tablename__ = "jobs"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     file_path = Column(String(500), nullable=True)
     filename = Column(String(255))
     status = Column(String(50), default="pending")
@@ -16,7 +30,9 @@ class Job(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
+    user = relationship("User", back_populates="jobs")
     transcript = relationship("Transcript", back_populates="job", uselist=False)
+
 
 class Transcript(Base):
     __tablename__ = "transcripts"
@@ -30,6 +46,7 @@ class Transcript(Base):
 
     job = relationship("Job", back_populates="transcript")
     segments = relationship("Segment", back_populates="transcript")
+
 
 class Segment(Base):
     __tablename__ = "segments"

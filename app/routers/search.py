@@ -19,7 +19,6 @@ def search_segments(
     if not transcript:
         return {"results": [], "query": q}
 
-    # Simple keyword search — we'll upgrade to semantic later
     segments = db.query(Segment).filter(
         Segment.transcript_id == transcript.id,
         Segment.text.ilike(f"%{q}%")

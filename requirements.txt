@@ -5,12 +5,11 @@ pydantic-settings~=2.6.0
 pydantic~=2.10.0
 redis~=5.2.0
 python-dotenv~=1.0.1
-torch~=2.6.0
-pyannote.audio~=3.3.2
-openai-whisper==20250625
 psycopg2-binary~=2.9.9
 python-multipart~=0.0.12
 uvicorn~=0.32.0
-torchaudio==2.6.0
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+requests~=2.32.0
+groq~=0.28.0
+email-validator~=2.2.0

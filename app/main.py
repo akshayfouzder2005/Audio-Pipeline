@@ -5,6 +5,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
 from app.routers import upload, jobs, search
+from app.routers import auth
 
 Base.metadata.create_all(bind=engine)
 
@@ -13,11 +14,12 @@ app = FastAPI(title="Audio Transcription Pipeline", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(upload.router)
 app.include_router(jobs.router)
 app.include_router(search.router)

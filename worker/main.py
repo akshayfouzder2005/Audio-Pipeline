@@ -2,7 +2,6 @@ import os
 import sys
 import time
 
-# Add parent directory to path so worker can import app modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dotenv import load_dotenv
@@ -13,9 +12,7 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine, Base
 from app.models import Job, Transcript, Segment
 from app.config import settings
-from worker.transcriber import transcribe
-from worker.diarizer import diarize
-from worker.aligner import align
+from worker.groq_client import transcribe_and_diarize
 
 # Create tables if not exist
 Base.metadata.create_all(bind=engine)
@@ -25,6 +22,7 @@ r = redis.Redis.from_url(settings.REDIS_URL, decode_responses=True)
 STREAM_NAME = "audio:jobs"
 GROUP_NAME = "workers"
 CONSUMER_NAME = "worker-1"
+
 
 def create_consumer_group():
     try:
@@ -36,6 +34,7 @@ def create_consumer_group():
         else:
             raise
 
+
 def update_job_status(db: Session, job_id: str, status: str, error: str = None):
     job = db.query(Job).filter(Job.id == job_id).first()
     if job:
@@ -44,44 +43,37 @@ def update_job_status(db: Session, job_id: str, status: str, error: str = None):
             job.error_message = error
         db.commit()
 
+
 def process_job(job_id: str, file_path: str, filename: str):
     db = SessionLocal()
     try:
-        print(f"Processing job {job_id} — {filename}")
+        print(f"\nProcessing job {job_id} — {filename}")
         update_job_status(db, job_id, "processing")
 
-        # Step 1 — Transcribe with Whisper
-        print(f"Transcribing {file_path}...")
-        transcription = transcribe(file_path)
-        print(f"Transcription done. Language: {transcription['language']}")
+        # Single call replaces Whisper + pyannote + aligner
+        result = transcribe_and_diarize(file_path)
 
-        # Step 2 — Diarize with pyannote
-        print(f"Diarizing {file_path}...")
-        diarization = diarize(file_path)
-        print(f"Diarization done. Found {len(set(d['speaker'] for d in diarization))} speakers.")
+        print(f"Done. Language: {result['language']} | "
+              f"Duration: {result['duration_seconds']:.1f}s | "
+              f"Segments: {len(result['segments'])}")
 
-        # Step 3 — Align speakers with transcript
-        aligned_segments = align(transcription["segments"], diarization)
-
-        # Step 4 — Store results in PostgreSQL
-        # Get audio duration from last segment
-        duration = float(transcription["segments"][-1]["end"]) if transcription["segments"] else 0.0
-
+        # Save Transcript
         transcript = Transcript(
             job_id=job_id,
-            full_text=transcription["text"],
-            language=transcription["language"],
-            duration_seconds=duration
+            full_text=result["text"],
+            language=result["language"],
+            duration_seconds=result["duration_seconds"]
         )
         db.add(transcript)
         db.flush()
 
-        for seg in aligned_segments:
+        # Save Segments
+        for seg in result["segments"]:
             segment = Segment(
                 transcript_id=transcript.id,
                 speaker_label=seg["speaker"],
-                start_time=float(seg["start"]),  # convert numpy float to Python float
-                end_time=float(seg["end"]),  # convert numpy float to Python float
+                start_time=float(seg["start"]),
+                end_time=float(seg["end"]),
                 text=seg["text"]
             )
             db.add(segment)
@@ -90,7 +82,6 @@ def process_job(job_id: str, file_path: str, filename: str):
         update_job_status(db, job_id, "completed")
         print(f"Job {job_id} completed successfully.")
 
-
     except Exception as e:
         print(f"Job {job_id} failed: {e}")
         db.rollback()
@@ -98,19 +89,19 @@ def process_job(job_id: str, file_path: str, filename: str):
     finally:
         db.close()
 
+
 def main():
     print("Worker started. Waiting for jobs...")
     create_consumer_group()
 
     while True:
         try:
-            # Read new messages from stream
             messages = r.xreadgroup(
                 GROUP_NAME,
                 CONSUMER_NAME,
-                {STREAM_NAME: ">"},  # ">" means only new messages
+                {STREAM_NAME: ">"},
                 count=1,
-                block=5000           # block for 5 seconds if no messages
+                block=5000
             )
 
             if not messages:
@@ -124,7 +115,6 @@ def main():
 
                     try:
                         process_job(job_id, file_path, filename)
-                        # Acknowledge message — removes from pending list
                         r.xack(STREAM_NAME, GROUP_NAME, message_id)
                     except Exception as e:
                         print(f"Failed to process message {message_id}: {e}")
@@ -135,6 +125,7 @@ def main():
         except Exception as e:
             print(f"Worker error: {e}")
             time.sleep(2)
+
 
 if __name__ == "__main__":
     main()

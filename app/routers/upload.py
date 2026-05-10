@@ -36,7 +36,6 @@ async def upload_audio(
         )
 
     # Save file to disk
-    # Save file to disk
     upload_dir = os.path.abspath(settings.UPLOAD_DIR)
     os.makedirs(upload_dir, exist_ok=True)
     file_id = str(uuid.uuid4())

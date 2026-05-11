@@ -1,6 +1,8 @@
 import os
 import sys
 import time
+import tempfile
+import requests
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -14,13 +16,12 @@ from app.models import Job, Transcript, Segment
 from app.config import settings
 from worker.groq_client import transcribe_and_diarize
 
-# Create tables if not exist
 Base.metadata.create_all(bind=engine)
 
 r = redis.Redis.from_url(settings.REDIS_URL, decode_responses=True)
 
 STREAM_NAME = "audio:jobs"
-GROUP_NAME = "workers"
+GROUP_NAME  = "workers"
 CONSUMER_NAME = "worker-1"
 
 
@@ -44,14 +45,39 @@ def update_job_status(db: Session, job_id: str, status: str, error: str = None):
         db.commit()
 
 
+def download_audio(job_id: str, filename: str) -> str:
+    """
+    Download audio file from the API and save to a temp file.
+    Returns the local temp file path.
+    """
+    api_url = f"{settings.API_BASE_URL}/api/audio/{job_id}"
+    print(f"Downloading audio from {api_url}...")
+
+    response = requests.get(api_url, timeout=120)
+    response.raise_for_status()
+
+    # Preserve original extension for Groq
+    ext = os.path.splitext(filename)[-1].lower() or ".mp3"
+    tmp = tempfile.NamedTemporaryFile(suffix=ext, delete=False)
+    tmp.write(response.content)
+    tmp.close()
+
+    print(f"Audio downloaded to {tmp.name} ({len(response.content) / 1024:.1f} KB)")
+    return tmp.name
+
+
 def process_job(job_id: str, file_path: str, filename: str):
     db = SessionLocal()
+    local_path = None
     try:
         print(f"\nProcessing job {job_id} — {filename}")
         update_job_status(db, job_id, "processing")
 
-        # Single call replaces Whisper + pyannote + aligner
-        result = transcribe_and_diarize(file_path)
+        # Download audio from API (works whether worker is local or on Render)
+        local_path = download_audio(job_id, filename)
+
+        # Transcribe
+        result = transcribe_and_diarize(local_path)
 
         print(f"Done. Language: {result['language']} | "
               f"Duration: {result['duration_seconds']:.1f}s | "
@@ -88,10 +114,15 @@ def process_job(job_id: str, file_path: str, filename: str):
         update_job_status(db, job_id, "failed", error=str(e))
     finally:
         db.close()
+        # Clean up temp file
+        if local_path and os.path.exists(local_path):
+            os.remove(local_path)
+            print(f"Cleaned up {local_path}")
 
 
 def main():
     print("Worker started. Waiting for jobs...")
+    print(f"API base URL: {settings.API_BASE_URL}")
     create_consumer_group()
 
     while True:
@@ -109,9 +140,9 @@ def main():
 
             for stream, entries in messages:
                 for message_id, data in entries:
-                    job_id = data.get("job_id")
+                    job_id   = data.get("job_id")
                     file_path = data.get("file_path")
-                    filename = data.get("filename")
+                    filename  = data.get("filename")
 
                     try:
                         process_job(job_id, file_path, filename)

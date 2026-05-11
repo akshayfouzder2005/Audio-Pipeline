@@ -249,10 +249,10 @@ All free — $0/month.
 | Component | Service |
 |---|---|
 | API | Render (Docker) |
-| Frontend | Cloudflare Pages |
+| Frontend | Render |
+| Worker | Huggingface Space |
 | PostgreSQL | Supabase |
 | Redis | Upstash |
-| Worker | Local machine |
 
 **Render:** New Web Service → connect GitHub → Docker runtime → set env vars → deploy.
 
